@@ -595,7 +595,9 @@ export class Player {
   }
 
   load(data = {}) {
-    const p = data.position;
+    const p = Array.isArray(data.position)
+      ? { x: data.position[0], y: data.position[1], z: data.position[2] }
+      : data.position;
     if (
       p &&
       [p.x, p.y, p.z].every(Number.isFinite) &&
@@ -605,7 +607,9 @@ export class Player {
       p.y < 10000
     )
       this.position.set(p.x, p.y, p.z);
-    const spawn = data.spawn;
+    const spawn = Array.isArray(data.spawn)
+      ? { x: data.spawn[0], y: data.spawn[1], z: data.spawn[2] }
+      : data.spawn;
     if (spawn && [spawn.x, spawn.y, spawn.z].every(Number.isFinite))
       this.spawn.set(spawn.x, spawn.y, spawn.z);
     this.yaw = finite(data.yaw, this.yaw);

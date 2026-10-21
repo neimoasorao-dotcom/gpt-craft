@@ -289,6 +289,8 @@ export class UI {
     this.worlds = worldSaves || [];
     this.gameActive = false;
     this.hud.hidden = true;
+    this.root.querySelector(".damage-vignette").style.opacity = "0";
+    this.root.querySelector(".underwater-vignette").style.opacity = "0";
     const recent = this.worlds.slice(0, 3);
     this.screenHTML(
       `<div class="menu-grain"></div><header class="menu-header">${this.logo(true)}<span class="menu-header-note">A WORLD WAITING TO BE YOURS</span><button class="icon-button" data-action="settings" title="設定">${symbol("gear")}</button></header>

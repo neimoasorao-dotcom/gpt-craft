@@ -422,6 +422,82 @@ export class EntitySystem {
     return entity;
   }
 
+  isSpawnLit(x, y, z) {
+    const radii = { 16: 7, 30: 10, 32: 8, 36: 12, 13: 4 };
+    const sourceVisible = (sx, sy, sz, id) => {
+      const radius = radii[id];
+      if (!radius) return false;
+      const dx = sx + 0.5 - x,
+        dy = sy + 0.5 - (y + 0.8),
+        dz = sz + 0.5 - z;
+      const distance = Math.hypot(dx, dy, dz);
+      if (!Number.isFinite(distance) || distance > radius) return false;
+      // Light cannot protect a cave through a sealed wall. Ignore the luminous
+      // voxel itself, since glowstone and lanterns are solid blocks.
+      const steps = Math.ceil(distance * 3);
+      for (let step = 1; step < steps; step++) {
+        const t = step / steps;
+        const bx = Math.floor(x + dx * t),
+          by = Math.floor(y + 0.8 + dy * t),
+          bz = Math.floor(z + dz * t);
+        if (bx === sx && by === sy && bz === sz) continue;
+        if (this.solid(bx, by, bz)) return false;
+      }
+      return true;
+    };
+    const checkEntries = (entries) => {
+      for (const [key, id] of Object.entries(entries || {})) {
+        if (!radii[id]) continue;
+        const [sx, sy, sz] = key.split(",").map(Number);
+        if (sourceVisible(sx, sy, sz, id)) return true;
+      }
+      return false;
+    };
+    if (this.world.editsByChunk instanceof Map) {
+      // Only inspect the at most 3x3 nearby horizontal chunk indexes, even in a
+      // heavily edited world. No whole-world walk occurs in the normal engine.
+      const minX = Math.floor((x - 12) / 16),
+        maxX = Math.floor((x + 12) / 16);
+      const minZ = Math.floor((z - 12) / 16),
+        maxZ = Math.floor((z + 12) / 16);
+      for (let cz = minZ; cz <= maxZ; cz++)
+        for (let cx = minX; cx <= maxX; cx++) {
+          if (checkEntries(this.world.editsByChunk.get(`${cx},${cz}`)))
+            return true;
+        }
+    } else if (checkEntries(this.world.edits)) return true;
+    // A small fixed set also notices nearby unedited natural crystals and ruin
+    // glowstone. Placed light coverage is exact through the spatial index above.
+    const bx = Math.floor(x),
+      by = Math.floor(y),
+      bz = Math.floor(z);
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dz = -1; dz <= 1; dz++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const sx = bx + dx,
+            sy = by + dy,
+            sz = bz + dz;
+          if (sourceVisible(sx, sy, sz, this.world.getBlock(sx, sy, sz)))
+            return true;
+        }
+    for (const distance of [2, 4, 6])
+      for (const [dx, dy, dz] of [
+        [1, 0, 0],
+        [-1, 0, 0],
+        [0, 1, 0],
+        [0, -1, 0],
+        [0, 0, 1],
+        [0, 0, -1],
+      ]) {
+        const sx = bx + dx * distance,
+          sy = by + dy * distance,
+          sz = bz + dz * distance;
+        if (sourceVisible(sx, sy, sz, this.world.getBlock(sx, sy, sz)))
+          return true;
+      }
+    return false;
+  }
+
   trySpawn(player, time) {
     if (this.entities.length >= this.maxEntities) return;
     const hostileCount = this.entities.filter(
@@ -467,7 +543,8 @@ export class EntitySystem {
         (night || underground) &&
         hostileCount < 7 &&
         this.random() < 0.65 &&
-        this.mode !== "peaceful"
+        this.mode !== "peaceful" &&
+        !this.isSpawnLit(x, y, z)
       )
         type = this.random() < 0.75 ? "shardling" : "duskboar";
       else {

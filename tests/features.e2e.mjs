@@ -271,6 +271,31 @@ try {
       return { errors };
     },
   );
+  await check(
+    "title transition clears injury and underwater overlays",
+    async () => {
+      const result = await page.evaluate(() => {
+        const g = window.__game;
+        g.ui.update({ health: 5, underwater: true, oxygen: 20 });
+        const before = {
+          injury: g.ui.root.querySelector(".damage-vignette").style.opacity,
+          water: g.ui.root.querySelector(".underwater-vignette").style.opacity,
+        };
+        g.ui.showMain([]);
+        return {
+          before,
+          injury: g.ui.root.querySelector(".damage-vignette").style.opacity,
+          water: g.ui.root.querySelector(".underwater-vignette").style.opacity,
+        };
+      });
+      assert.ok(
+        Number(result.before.injury) > 0 && Number(result.before.water) > 0,
+      );
+      assert.equal(result.injury, "0");
+      assert.equal(result.water, "0");
+      return result;
+    },
+  );
 } finally {
   await fs.writeFile(
     "artifacts/features-results.json",

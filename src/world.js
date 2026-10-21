@@ -282,6 +282,48 @@ function configureAtlasShader(shader, emissive = false) {
     );
 }
 
+function createFastTerrainMaterial(texture) {
+  const atlas = texture.clone();
+  atlas.anisotropy = 1;
+  atlas.minFilter = THREE.NearestMipmapNearestFilter;
+  atlas.needsUpdate = true;
+  const uniforms = {
+    map: { value: atlas },
+    daylight: { value: 1 },
+    fogColor: { value: new THREE.Color(0xaac5bf) },
+    fogDensity: { value: 0.007 },
+    lightCount: { value: 0 },
+    localLights: {
+      value: Array.from({ length: 8 }, () => new THREE.Vector4()),
+    },
+    localColors: {
+      value: Array.from({ length: 8 }, () => new THREE.Vector3()),
+    },
+  };
+  const material = new THREE.ShaderMaterial({
+    vertexColors: true,
+    uniforms,
+    transparent: false,
+    vertexShader: `
+attribute vec2 repeatUv; attribute vec2 atlasTile; attribute float glow;
+uniform float daylight,fogDensity;uniform int lightCount;uniform vec4 localLights[8];uniform vec3 localColors[8];
+varying vec2 vRepeatUv,vAtlasTile;varying vec3 vColor;varying float vFog;
+void main(){
+ vec4 world=modelMatrix*vec4(position,1.0);vec4 view=modelViewMatrix*vec4(position,1.0);
+ vec3 illumination=mix(vec3(.12,.17,.27),vec3(1.25,1.25,1.15),daylight)+vec3(glow*.8);
+ for(int i=0;i<8;i++){if(i>=lightCount)break;vec3 delta=localLights[i].xyz-world.xyz;float attenuation=max(0.,1.-dot(delta,delta)/(localLights[i].w*localLights[i].w));illumination+=localColors[i]*attenuation*attenuation;}
+ vColor=color*illumination;vRepeatUv=repeatUv;vAtlasTile=atlasTile;
+ vFog=1.-exp(-fogDensity*fogDensity*view.z*view.z);gl_Position=projectionMatrix*view;
+}`,
+    fragmentShader: `
+uniform sampler2D map;uniform vec3 fogColor;varying vec2 vRepeatUv,vAtlasTile;varying vec3 vColor;varying float vFog;
+void main(){vec2 uv=(vAtlasTile+vec2(.0025)+fract(vRepeatUv)*.995)/8.;vec4 texel=textureGrad(map,uv,dFdx(vRepeatUv)*.124375,dFdy(vRepeatUv)*.124375);if(texel.a<.35)discard;vec3 col=mix(texel.rgb*vColor,fogColor,clamp(vFog,0.,1.));gl_FragColor=vec4(sqrt(max(col,vec3(0.))),1.);}
+`,
+  });
+  material.userData.atlas = atlas;
+  return material;
+}
+
 export class World {
   constructor(scene, seed, edits = {}) {
     this.scene = scene;
@@ -306,6 +348,10 @@ export class World {
       queued: 0,
     };
     this.texture = atlasTexture();
+    this.fastMaterial = createFastTerrainMaterial(this.texture);
+    this.quality = "high";
+    this.localLights = [];
+    this._lightColor = new THREE.Color();
     this.material = new THREE.MeshLambertMaterial({
       map: this.texture,
       vertexColors: true,
@@ -416,6 +462,55 @@ export class World {
   }
   setTime(dayFraction) {
     this.dayFraction = dayFraction;
+    this.fastMaterial.uniforms.daylight.value = THREE.MathUtils.smoothstep(
+      Math.sin(dayFraction * Math.PI * 2 - Math.PI / 2),
+      -0.15,
+      0.4,
+    );
+  }
+  setQuality(quality) {
+    this.quality = quality;
+    const material = quality === "low" ? this.fastMaterial : this.material;
+    this.materials.solid = material;
+    for (const chunk of this.chunks.values())
+      if (chunk.solid) chunk.solid.material = material;
+  }
+  setLocalLights(lights = []) {
+    this.localLights = Array.isArray(lights) ? lights : [];
+    this.updateFastUniforms();
+  }
+  updateFastUniforms() {
+    const uniforms = this.fastMaterial.uniforms;
+    if (this.scene.fog) {
+      uniforms.fogColor.value.copy(this.scene.fog.color);
+      uniforms.fogDensity.value = this.scene.fog.density ?? 0.007;
+    }
+    let count = 0;
+    for (const light of this.localLights) {
+      if (!light) continue;
+      const p = light.position || light;
+      if (![p.x, p.y, p.z].every(Number.isFinite)) continue;
+      uniforms.localLights.value[count].set(
+        p.x,
+        p.y,
+        p.z,
+        Math.max(3, Number(light.distance) || 11),
+      );
+      if (light.color?.isColor) this._lightColor.copy(light.color);
+      else this._lightColor.set(light.color ?? 0xffcc83);
+      uniforms.localColors.value[count]
+        .set(this._lightColor.r, this._lightColor.g, this._lightColor.b)
+        .multiplyScalar(
+          Math.min(
+            2,
+            (Number.isFinite(light.intensity)
+              ? Math.max(0, light.intensity)
+              : 8) * 0.16,
+          ),
+        );
+      if (++count === 8) break;
+    }
+    uniforms.lightCount.value = count;
   }
   setBlock(x, y, z, id) {
     x = Math.floor(x);
@@ -503,7 +598,7 @@ export class World {
       if (!g) continue;
       const mesh = new THREE.Mesh(
         g,
-        kind === "solid" ? this.material : this.waterMaterial,
+        kind === "solid" ? this.materials.solid : this.waterMaterial,
       );
       mesh.position.set(result.cx * S, 0, result.cz * S);
       mesh.castShadow = kind === "solid";
@@ -539,6 +634,7 @@ export class World {
   }
   update(position, renderDistance = 5) {
     if (this.disposed) return;
+    this.updateFastUniforms();
     this.time = performance.now() / 1000;
     this.waterUniform.value = this.time;
     const cx = Math.floor(position.x / S),
@@ -600,6 +696,8 @@ export class World {
     this.terrain.columns.clear();
     this.terrain.treeCache.clear();
     this.terrain.structures.clear();
+    this.fastMaterial.userData.atlas.dispose();
+    this.fastMaterial.dispose();
     this.material.dispose();
     this.depthMaterial.dispose();
     this.waterMaterial.dispose();

@@ -165,3 +165,54 @@ test("world diagnostics count indexed triangles rather than unique vertices", as
   indexed.dispose();
   plain.dispose();
 });
+
+test("low-quality lighting follows daylight, fog, torch intensity and bounded local-light input", async () => {
+  const THREE = await import("three");
+  const { World } = await import("../src/world.js");
+  const uniforms = {
+    daylight: { value: 0 },
+    fogColor: { value: new THREE.Color() },
+    fogDensity: { value: 0 },
+    lightCount: { value: 0 },
+    localLights: {
+      value: Array.from({ length: 8 }, () => new THREE.Vector4()),
+    },
+    localColors: {
+      value: Array.from({ length: 8 }, () => new THREE.Vector3()),
+    },
+  };
+  const world = {
+    fastMaterial: { uniforms },
+    scene: { fog: new THREE.FogExp2("#31546a", 0.09) },
+    _lightColor: new THREE.Color(),
+    localLights: [],
+    updateFastUniforms: World.prototype.updateFastUniforms,
+  };
+  World.prototype.setTime.call(world, 0.5);
+  assert.equal(uniforms.daylight.value, 1);
+  World.prototype.setTime.call(world, 0);
+  assert.equal(uniforms.daylight.value, 0);
+  const torch = new THREE.PointLight("#ffc67a", 10, 11);
+  torch.position.set(-16, 24, 1);
+  World.prototype.setLocalLights.call(world, [
+    null,
+    { x: NaN, y: 0, z: 0 },
+    torch,
+  ]);
+  assert.equal(uniforms.lightCount.value, 1);
+  assert.deepEqual(uniforms.localLights.value[0].toArray(), [-16, 24, 1, 11]);
+  assert.ok(uniforms.localColors.value[0].length() > 0);
+  assert.equal(uniforms.fogDensity.value, 0.09);
+  assert.ok(uniforms.fogColor.value.equals(world.scene.fog.color));
+  torch.intensity = 0;
+  world.updateFastUniforms();
+  assert.equal(
+    uniforms.localColors.value[0].length(),
+    0,
+    "an extinguished lamp must not illuminate terrain",
+  );
+  World.prototype.setLocalLights.call(world, Array(12).fill(torch));
+  assert.equal(uniforms.lightCount.value, 8);
+  World.prototype.setLocalLights.call(world, []);
+  assert.equal(uniforms.lightCount.value, 0);
+});

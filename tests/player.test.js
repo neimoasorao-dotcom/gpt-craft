@@ -352,3 +352,17 @@ test("coarse multi-substep landing still applies accumulated fall damage exactly
   assert.ok(p.health > 30 && p.health < 40, `health ${p.health}`);
   assert.equal(landings, 1);
 });
+
+test("validated compact save coordinates restore the player and bed spawn", () => {
+  const player = new Player(new PerspectiveCamera(), makeWorld());
+  player.load({
+    position: [-17.5, 42.25, 63.5],
+    spawn: [8.5, 37.05, -3.5],
+    health: 74,
+  });
+  assert.deepEqual(player.position.toArray(), [-17.5, 42.25, 63.5]);
+  assert.deepEqual(player.spawn.toArray(), [8.5, 37.05, -3.5]);
+  assert.equal(player.health, 74);
+  player.load({ position: [1, 2], health: 74 });
+  assert.deepEqual(player.position.toArray(), [-17.5, 42.25, 63.5]);
+});

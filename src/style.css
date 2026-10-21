@@ -3747,3 +3747,7 @@ kbd {
 .stamina-row > span {
   font-size: 8px;
 }
+
+.wildbound-ui[data-quality="low"] * {
+  backdrop-filter: none !important;
+}

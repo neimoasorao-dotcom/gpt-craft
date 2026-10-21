@@ -149,6 +149,7 @@ export class Game {
     this.ui.showLoading(0, "風景を描いています");
     await nextFrame();
     this.world = new World(this.scene, "wildbound");
+    this.world.setQuality?.(this.settings.quality);
     const spawn = this.world.getSpawn();
     this.world.ensureAround(spawn.x, spawn.z, 3);
     this.menuOrigin = new THREE.Vector3(spawn.x, spawn.y, spawn.z);
@@ -223,6 +224,7 @@ export class Game {
       this.chests = saved?.chests || {};
       this.planted = saved?.planted || {};
       this.world = new World(this.scene, this.seed, saved?.edits || {});
+      this.world.setQuality?.(this.settings.quality);
       this.beaconEffects = new BeaconEffects(this.scene);
       this.ui.showLoading(0.25, "山と森、地下の物語を紡いでいます");
       await nextFrame();
@@ -443,6 +445,7 @@ export class Game {
       this.camera.aspect = innerWidth / innerHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(innerWidth, innerHeight);
+      this.forceRender = true;
     });
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     this.canvas.addEventListener("mousedown", (e) => {
@@ -608,6 +611,7 @@ export class Game {
     if (index < 0 || index > 8 || !this.inventory) return;
     this.inventory.selected = index;
     this.mining = 0;
+    this.lightTick = 2;
     this.audio.play("ui");
   }
   creativeItem(id) {
@@ -1128,6 +1132,8 @@ export class Game {
     this.applySettings();
   }
   applySettings() {
+    this.root.dataset.quality = this.settings.quality;
+    this.forceRender = true;
     this.renderer.setPixelRatio(
       (this.performance?.scale || 1) *
         (this.settings.quality === "low"
@@ -1138,6 +1144,7 @@ export class Game {
             )),
     );
     this.renderer.shadowMap.enabled = this.settings.quality !== "low";
+    this.world?.setQuality?.(this.settings.quality);
     this.camera.fov = this.settings.fov;
     this.camera.updateProjectionMatrix();
   }
@@ -1175,10 +1182,12 @@ export class Game {
     const slot = this.inventory.selectedItem();
     if (["torch", "lantern"].includes(slot?.id)) {
       const light = new THREE.PointLight(0xffcc83, 8, 10, 1.8);
+      light.userData.held = true;
       light.position.copy(p).add(new THREE.Vector3(0.3, 1.5, 0.2));
       this.scene.add(light);
       this.lights.push(light);
     }
+    this.world.setLocalLights?.(this.lights);
   }
   tick(dt) {
     if (this.state === "playing" && this.player) {
@@ -1245,9 +1254,15 @@ export class Game {
         this.lightTick = 0;
         this.updateLights();
       }
-      for (const light of this.lights)
+      for (const light of this.lights) {
+        if (light.userData.held)
+          light.position
+            .copy(this.player.position)
+            .add(new THREE.Vector3(0.3, 1.5, 0.2));
         light.intensity *=
           1 + Math.sin(this.time * 12 + light.position.x) * 0.0008;
+      }
+      this.world.setLocalLights?.(this.lights);
       this.farmTick += dt;
       if (this.farmTick > 5) {
         this.farmTick = 0;
@@ -1354,11 +1369,21 @@ export class Game {
     try {
       for (let step = 0; step < steps; step++) this.tick(dt);
       this.shadowTimer += elapsed;
-      if (this.shadowTimer > 0.22) {
+      const shadowInterval = this.fps > 35 ? 0 : 0.22;
+      if (this.shadowTimer > shadowInterval) {
         this.renderer.shadowMap.needsUpdate = true;
         this.shadowTimer = 0;
       }
-      this.renderer.render(this.scene, this.camera);
+      // Paused worlds retain their last image while the HTML menus stay responsive.
+      if (
+        ["playing", "menu", "loading"].includes(this.state) ||
+        this.forceRender ||
+        this.lastRenderedState !== this.state
+      ) {
+        this.renderer.render(this.scene, this.camera);
+        this.lastRenderedState = this.state;
+        this.forceRender = false;
+      }
       this.performance.update(
         elapsed,
         ["playing", "menu"].includes(this.state),
