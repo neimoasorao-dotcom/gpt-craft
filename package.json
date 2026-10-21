@@ -11,14 +11,17 @@
     "test:e2e": "node tests/e2e.mjs",
     "test:features": "node tests/features.e2e.mjs",
     "test:performance": "node tests/performance.e2e.mjs",
-    "format": "prettier --write src tests index.html vite.config.js package.json",
-    "format:check": "prettier --check src tests index.html vite.config.js package.json"
+    "format": "prettier --write src tests scripts index.html vite.config.js package.json",
+    "format:check": "prettier --check src tests scripts index.html vite.config.js package.json",
+    "build:standalone": "node scripts/build-standalone.mjs",
+    "test:standalone": "node tests/standalone.e2e.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
+    "esbuild": "0.28.2",
     "prettier": "3.6.2",
     "vite": "^7.1.9"
   },
