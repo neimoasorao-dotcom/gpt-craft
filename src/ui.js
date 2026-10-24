@@ -1,4 +1,5 @@
 import { ITEMS, RECIPES } from "./data.js";
+import { GRAPHICS_PRESETS, getGraphicsPreset } from "./graphics-config.js";
 
 const esc = (s = "") =>
   String(s).replace(
@@ -343,10 +344,16 @@ export class UI {
     this.screen = "settings";
     this.settings = { ...this.settings, ...settings };
     const s = this.settings;
+    const qualityOptions = Object.entries(GRAPHICS_PRESETS)
+      .map(
+        ([value, preset]) =>
+          `<option value="${value}" ${s.quality === value ? "selected" : ""}>${esc(preset.label)}</option>`,
+      )
+      .join("");
     const slider = (key, label, min, max, step, format) =>
       `<label class="setting-row"><span><strong>${label}</strong><small>${{ renderDistance: "広く見渡すほど、描画の負荷が上がります。", fov: "広角な視界で、景色をもっと。", sensitivity: "視点移動の速さを調整します。", volume: "すべての音の大きさ。", musicVolume: "旅に寄り添う、環境音と旋律。", effectsVolume: "足音・採掘・生き物の音。" }[key]}</small></span><div class="setting-control"><input type="range" min="${min}" max="${max}" step="${step}" value="${s[key]}" data-setting="${key}" aria-label="${label}"><output data-output="${key}">${format(s[key])}</output></div></label>`;
     this.screenHTML(
-      `<div class="panel settings-panel"><div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2>設定</h2></div><button class="icon-button" data-action="settings-back" title="閉じる">${symbol("close")}</button></div><div class="settings-scroll"><h3 class="section-title">視界と操作</h3>${slider("renderDistance", "描画距離", 3, 8, 1, (v) => v + " チャンク")}${slider("fov", "視野角", 60, 100, 1, (v) => v + "°")}${slider("sensitivity", "マウス感度", 0.2, 2, 0.05, (v) => Number(v).toFixed(2))}<label class="setting-row"><span><strong>カメラの揺れ</strong><small>歩行時の揺れを抑えたいときはオフに。</small></span><span class="switch"><input type="checkbox" data-setting="headBob" ${s.headBob ? "checked" : ""}><i></i></span></label><label class="setting-row"><span><strong>描画を自動調整</strong><small>動作に合わせて、表示の精細さを調整します。</small></span><span class="switch"><input type="checkbox" data-setting="autoResolution" ${s.autoResolution ? "checked" : ""}><i></i></span></label><label class="setting-row"><span><strong>グラフィック品質</strong><small>お使いの端末に合わせて調整してください。</small></span><select data-setting="quality"><option value="low" ${s.quality === "low" ? "selected" : ""}>低 · 軽さ優先</option><option value="medium" ${s.quality === "medium" ? "selected" : ""}>標準</option><option value="high" ${s.quality === "high" ? "selected" : ""}>高 · 美しさ優先</option></select></label><h3 class="section-title">音</h3>${slider("volume", "マスター音量", 0, 1, 0.01, (v) => Math.round(v * 100) + "%")}${slider("musicVolume", "音楽・環境音", 0, 1, 0.01, (v) => Math.round(v * 100) + "%")}${slider("effectsVolume", "効果音", 0, 1, 0.01, (v) => Math.round(v * 100) + "%")}<h3 class="section-title">操作ガイド</h3><div class="controls-grid"><span><kbd>W A S D</kbd> 移動</span><span><kbd>マウス</kbd> 視点</span><span><kbd>Space</kbd> ジャンプ / 泳ぐ</span><span><kbd>Shift</kbd> ダッシュ</span><span><kbd>Ctrl</kbd> しゃがむ</span><span><kbd>E</kbd> 持ちもの</span><span><kbd>1 – 9</kbd> スロット切替</span><span><kbd>Q</kbd> アイテムを落とす</span><span><kbd>R</kbd> 食べる</span><span><kbd>V</kbd> 飛行 (クリエイティブ)</span><span><kbd>F</kbd> 使う / 調べる</span><span><kbd>J</kbd> フィールドノート</span><span><kbd>M</kbd> 探検地図</span><span><kbd>F3</kbd> デバッグ表示</span><span><kbd>Esc</kbd> ポーズ</span></div></div><div class="form-bottom"><span class="small-text muted">変更は自動で保存されます。</span><button class="button primary" data-action="settings-back">完了 ${symbol("check")}</button></div></div>`,
+      `<div class="panel settings-panel"><div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2>設定</h2></div><button class="icon-button" data-action="settings-back" title="閉じる">${symbol("close")}</button></div><div class="settings-scroll"><h3 class="section-title">視界と操作</h3>${slider("renderDistance", "描画距離", 2, 12, 1, (v) => v + " チャンク")}${slider("fov", "視野角", 60, 100, 1, (v) => v + "°")}${slider("sensitivity", "マウス感度", 0.2, 2, 0.05, (v) => Number(v).toFixed(2))}<label class="setting-row"><span><strong>カメラの揺れ</strong><small>歩行時の揺れを抑えたいときはオフに。</small></span><span class="switch"><input type="checkbox" data-setting="headBob" ${s.headBob ? "checked" : ""}><i></i></span></label><label class="setting-row"><span><strong>描画を自動調整</strong><small>動作に合わせて、表示の精細さを調整します。</small></span><span class="switch"><input type="checkbox" data-setting="autoResolution" ${s.autoResolution ? "checked" : ""}><i></i></span></label><label class="setting-row"><span><strong>グラフィック品質</strong><small data-quality-description>${esc(getGraphicsPreset(s.quality).description)}</small></span><select data-setting="quality">${qualityOptions}</select></label><h3 class="section-title">音</h3>${slider("volume", "マスター音量", 0, 1, 0.01, (v) => Math.round(v * 100) + "%")}${slider("musicVolume", "音楽・環境音", 0, 1, 0.01, (v) => Math.round(v * 100) + "%")}${slider("effectsVolume", "効果音", 0, 1, 0.01, (v) => Math.round(v * 100) + "%")}<h3 class="section-title">操作ガイド</h3><div class="controls-grid"><span><kbd>W A S D</kbd> 移動</span><span><kbd>マウス</kbd> 視点</span><span><kbd>Space</kbd> ジャンプ / 泳ぐ</span><span><kbd>Shift</kbd> ダッシュ</span><span><kbd>Ctrl</kbd> しゃがむ</span><span><kbd>E</kbd> 持ちもの</span><span><kbd>1 – 9</kbd> スロット切替</span><span><kbd>Q</kbd> アイテムを落とす</span><span><kbd>R</kbd> 食べる</span><span><kbd>V</kbd> 飛行 (クリエイティブ)</span><span><kbd>F</kbd> 使う / 調べる</span><span><kbd>J</kbd> フィールドノート</span><span><kbd>M</kbd> 探検地図</span><span><kbd>F3</kbd> デバッグ表示</span><span><kbd>Esc</kbd> ポーズ</span></div></div><div class="form-bottom"><span class="small-text muted">変更は自動で保存されます。</span><button class="button primary" data-action="settings-back">完了 ${symbol("check")}</button></div></div>`,
       "center-screen",
     );
   }
@@ -955,6 +962,13 @@ export class UI {
     if (key && (el.type === "checkbox" || el.tagName === "SELECT")) {
       const value = el.type === "checkbox" ? el.checked : el.value;
       this.settings[key] = value;
+      if (key === "quality") {
+        const description = this.overlay.querySelector(
+          "[data-quality-description]",
+        );
+        if (description)
+          description.textContent = getGraphicsPreset(value).description;
+      }
       this.call("settings", { [key]: value });
     }
     if (el.classList.contains("import-file") && el.files?.[0]) {

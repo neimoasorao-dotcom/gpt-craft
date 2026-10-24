@@ -1,11 +1,13 @@
 import * as THREE from "three";
+import { atlasTexture } from "./terrain-textures.js";
+import { createTerrainMaterials } from "./terrain-materials.js";
+import { createWaterMaterial } from "./water.js";
 import {
   Terrain,
   CHUNK_SIZE,
   WORLD_HEIGHT,
   SEA_LEVEL,
   meshChunk,
-  hash,
 } from "./worldgen.js";
 
 export { CHUNK_SIZE, WORLD_HEIGHT, SEA_LEVEL } from "./worldgen.js";
@@ -13,211 +15,6 @@ const S = CHUNK_SIZE,
   H = WORLD_HEIGHT;
 const index = (x, y, z) => (y * S + z) * S + x;
 const keyOf = (x, z) => `${x},${z}`;
-const palette = [
-  "#000000",
-  "#81a956",
-  "#92705a",
-  "#8b9298",
-  "#dbca92",
-  "#64b9b5",
-  "#846143",
-  "#6d9950",
-  "#b99462",
-  "#848b86",
-  "#687477",
-  "#9b9c8e",
-  "#9ba2a4",
-  "#5d8798",
-  "#e4e9df",
-  "#ad795f",
-  "#e9ad55",
-  "#ae8957",
-  "#7e8586",
-  "#ab7359",
-  "#b4ded9",
-  "#c2a9cd",
-  "#76a85b",
-  "#454c54",
-  "#505b66",
-  "#c79b50",
-  "#a5bab0",
-  "#6d915a",
-  "#b88e5b",
-  "#ac7770",
-  "#e5bd70",
-  "#403e55",
-  "#7edbd4",
-  "#795d48",
-  "#9db95e",
-  "#8b9b88",
-  "#90e1d6",
-  "#8b7954",
-  "#9b7850",
-  "#bc9a67",
-  "#777e7c",
-];
-function rgb(hex) {
-  return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-}
-function atlasTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 128;
-  const ctx = canvas.getContext("2d"),
-    image = ctx.createImageData(128, 128);
-  for (let id = 1; id < 64; id++) {
-    const base = rgb(palette[id] || "#b0aaa0");
-    for (let y = 0; y < 16; y++)
-      for (let x = 0; x < 16; x++) {
-        const r = hash(x, y, id, 98123),
-          r2 = hash(x >> 1, y >> 1, id, 715);
-        let shade = 0.86 + r * 0.25 + (r2 - 0.5) * 0.12,
-          color = base,
-          alpha = 255;
-        if (id === 0) alpha = 0;
-        if ([6, 27].includes(id)) shade *= x % 4 === 0 ? 0.72 : 1.05;
-        if (id === 38)
-          shade *=
-            Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5)) % 3 < 1 ? 0.72 : 1;
-        if ([8, 17, 28, 39].includes(id)) {
-          if (y % 4 === 0 || (x + (Math.floor(y / 4) % 2) * 8) % 16 === 0)
-            shade *= 0.68;
-          if (y % 4 === 1) shade *= 1.12;
-        }
-        if ([9, 19, 35].includes(id)) {
-          const row = Math.floor(y / 5);
-          if (y % 5 === 0 || (x + row * 5) % 9 === 0) shade *= 0.71;
-        }
-        if (id === 37) {
-          const grassEdge = 4 + Math.floor(hash(x >> 1, 0, 0, 12) * 4);
-          color = y < grassEdge ? rgb("#739d53") : rgb("#92705a");
-        }
-        if ([7, 25, 26].includes(id)) {
-          if (r < 0.055) alpha = 0;
-          shade *= r2 > 0.55 ? 1.12 : 0.88;
-        }
-        if ([10, 11, 12, 13].includes(id)) {
-          const ore =
-            id === 10
-              ? "#3f484b"
-              : id === 11
-                ? "#d6a070"
-                : id === 12
-                  ? "#d7cec0"
-                  : "#8edfd5";
-          if (r2 > 0.62 && r > 0.25) {
-            color = rgb(ore);
-            shade = 0.88 + r * 0.2;
-          }
-        }
-        if (id === 20) {
-          alpha =
-            x < 1 || x > 14 || y < 1 || y > 14 || (x + y > 12 && x + y < 15)
-              ? 210
-              : 0;
-        }
-        if (id === 5) {
-          if ((x + y * 2) % 11 === 0) shade *= 1.16;
-        }
-        if ([21, 22, 34, 16, 30, 36].includes(id)) {
-          alpha = 0;
-          if (id === 22) {
-            if (
-              ((x === 7 || x === 8) && y > 5) ||
-              ((x === 5 || x === 10) && y > 2) ||
-              ((x === 3 || x === 12) && y > 8) ||
-              (y > 11 && Math.abs(x - 7.5) < 4)
-            )
-              alpha = 255;
-          } else if (id === 21 || id === 34) {
-            if (
-              (y > 7 && x >= 7 && x <= 8) ||
-              (y > 10 && (x === 5 || x === 10))
-            ) {
-              alpha = 255;
-              color = rgb("#668d43");
-            }
-            if (
-              Math.abs(x - 7.5) + Math.abs(y - 5.5) < 4 ||
-              (y > 3 && y < 8 && x > 4 && x < 11)
-            ) {
-              alpha = 255;
-              color = rgb(id === 34 ? "#e3ca75" : "#dfbfdf");
-            }
-            if (Math.abs(x - 7.5) < 1.5 && Math.abs(y - 5.5) < 1.5)
-              color = rgb("#efce7e");
-          } else if (id === 16) {
-            if (x > 6 && x < 10 && y > 6) {
-              alpha = 255;
-              color = rgb("#946b44");
-            }
-            if (
-              x > 5 &&
-              x < 11 &&
-              y > 1 &&
-              y < 9 &&
-              Math.abs(x - 8) < (y < 4 ? 1.5 : 3)
-            ) {
-              alpha = 255;
-              color = rgb(y < 6 ? "#ffeab2" : "#efad60");
-            }
-          } else if (id === 30) {
-            if (x >= 4 && x <= 11 && y >= 4 && y <= 13) {
-              alpha = 255;
-              color = rgb(
-                x === 4 || x === 11 || y === 4 || y === 13
-                  ? "#585750"
-                  : "#f8d78c",
-              );
-            }
-            if (x >= 6 && x <= 9 && y > 0 && y < 5) {
-              alpha = 255;
-              color = rgb("#585750");
-            }
-          } else {
-            if (
-              (Math.abs(x - 7.5) + Math.abs(y - 7.5) < 6 &&
-                Math.abs(x - 7.5) + Math.abs(y - 7.5) > 3) ||
-              (Math.abs(x - 7.5) < 1 && Math.abs(y - 7.5) < 1)
-            ) {
-              alpha = 255;
-              color = rgb("#b8fff1");
-            }
-          }
-        }
-        if (id === 18 || id === 40) {
-          if (y % 5 === 0 || x % 7 === 0) shade *= 0.8;
-          if (id === 40 && x > 3 && x < 12 && y > 5 && y < 13) {
-            color = rgb(y > 9 ? "#e2a86b" : "#454b4d");
-            shade = 1;
-          }
-        }
-        if (id === 28 && (y === 7 || x === 1 || x === 14)) {
-          color = rgb("#65634e");
-          shade = 1;
-        }
-        if (id === 28 && x > 6 && x < 10 && y > 6 && y < 10) {
-          color = rgb("#e7ca81");
-          shade = 1;
-        }
-        if (id === 32) {
-          color = rgb(r2 > 0.45 ? "#8cdace" : "#6fae9c");
-          if ((x + y) % 7 === 0) shade = 1.35;
-        }
-        const px =
-          ((Math.floor(id / 8) * 16 + y) * 128 + (id % 8) * 16 + x) * 4;
-        for (let ch = 0; ch < 3; ch++)
-          image.data[px + ch] = Math.min(255, color[ch] * shade);
-        image.data[px + 3] = alpha;
-      }
-  }
-  ctx.putImageData(image, 0, 0);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.magFilter = THREE.NearestFilter;
-  texture.minFilter = THREE.NearestMipmapLinearFilter;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  return texture;
-}
 function geometryFrom(attrs) {
   if (!attrs.position.length) return null;
   const g = new THREE.BufferGeometry(),
@@ -249,39 +46,6 @@ function geometryFrom(attrs) {
   g.computeBoundingSphere();
   return g;
 }
-function configureAtlasShader(shader, emissive = false) {
-  shader.vertexShader =
-    "attribute vec2 repeatUv; attribute vec2 atlasTile; varying vec2 vRepeatUv; varying vec2 vAtlasTile;\n" +
-    (emissive ? "attribute float glow; varying float vGlow;\n" : "") +
-    shader.vertexShader;
-  shader.vertexShader = shader.vertexShader.replace(
-    "#include <begin_vertex>",
-    "#include <begin_vertex>\nvRepeatUv = repeatUv; vAtlasTile = atlasTile;\n" +
-      (emissive ? "vGlow = glow;" : ""),
-  );
-  shader.fragmentShader =
-    "varying vec2 vRepeatUv; varying vec2 vAtlasTile;\n" +
-    (emissive ? "varying float vGlow;\n" : "") +
-    shader.fragmentShader;
-  shader.fragmentShader = shader.fragmentShader.replace(
-    "#include <map_fragment>",
-    `
-#ifdef USE_MAP
-  vec2 atlasUv = (vAtlasTile + vec2(0.0025) + fract(vRepeatUv) * 0.995) / 8.0;
-  // Derivatives are taken before fract(), preserving correct mip selection at
-  // each repeated tile edge instead of producing a dark seam on merged faces.
-  vec4 sampledDiffuseColor = textureGrad(map, atlasUv, dFdx(vRepeatUv) * 0.124375, dFdy(vRepeatUv) * 0.124375);
-  diffuseColor *= sampledDiffuseColor;
-#endif
-`,
-  );
-  if (emissive)
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "#include <emissivemap_fragment>",
-      "#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * vGlow * 0.8;",
-    );
-}
-
 function createFastTerrainMaterial(texture) {
   const atlas = texture.clone();
   atlas.anisotropy = 1;
@@ -317,7 +81,7 @@ void main(){
 }`,
     fragmentShader: `
 uniform sampler2D map;uniform vec3 fogColor;varying vec2 vRepeatUv,vAtlasTile;varying vec3 vColor;varying float vFog;
-void main(){vec2 uv=(vAtlasTile+vec2(.0025)+fract(vRepeatUv)*.995)/8.;vec4 texel=textureGrad(map,uv,dFdx(vRepeatUv)*.124375,dFdy(vRepeatUv)*.124375);if(texel.a<.35)discard;vec3 col=mix(texel.rgb*vColor,fogColor,clamp(vFog,0.,1.));gl_FragColor=vec4(sqrt(max(col,vec3(0.))),1.);}
+void main(){vec2 uv=(vAtlasTile+vec2(.0025)+fract(vRepeatUv)*.995)/8.;vec2 gx=dFdx(vRepeatUv)*.124375,gy=dFdy(vRepeatUv)*.124375;gx/=max(1.,length(gx)*16.);gy/=max(1.,length(gy)*16.);vec4 texel=textureGrad(map,uv,gx,gy);if(texel.a<.35)discard;vec3 col=mix(texel.rgb*vColor,fogColor,clamp(vFog,0.,1.));gl_FragColor=vec4(sqrt(max(col,vec3(0.))),1.);}
 `,
   });
   material.userData.atlas = atlas;
@@ -352,43 +116,12 @@ export class World {
     this.quality = "high";
     this.localLights = [];
     this._lightColor = new THREE.Color();
-    this.material = new THREE.MeshLambertMaterial({
-      map: this.texture,
-      vertexColors: true,
-      alphaTest: 0.35,
-    });
-    this.material.onBeforeCompile = (shader) =>
-      configureAtlasShader(shader, true);
-    this.depthMaterial = new THREE.MeshDepthMaterial({
-      map: this.texture,
-      alphaTest: 0.35,
-      depthPacking: THREE.RGBADepthPacking,
-    });
-    this.depthMaterial.onBeforeCompile = (shader) =>
-      configureAtlasShader(shader);
-    this.waterMaterial = new THREE.MeshPhongMaterial({
-      color: "#8bc9c1",
-      transparent: true,
-      opacity: 0.65,
-      shininess: 85,
-      specular: "#e2fff2",
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      vertexColors: true,
-    });
-    this.waterUniform = { value: 0 };
-    this.waterMaterial.onBeforeCompile = (shader) => {
-      shader.uniforms.waterTime = this.waterUniform;
-      shader.vertexShader = "uniform float waterTime;\n" + shader.vertexShader;
-      shader.vertexShader = shader.vertexShader.replace(
-        "#include <begin_vertex>",
-        "#include <begin_vertex>\ntransformed.y += sin(position.x * .48 + waterTime * 1.1) * .035 + cos(position.z * .41 + waterTime * .8) * .025;",
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        "#include <common>",
-        "#include <common>\nuniform float waterTime;",
-      );
-    };
+    const terrainMaterials = createTerrainMaterials(this.texture);
+    this.material = terrainMaterials.solid;
+    this.depthMaterial = terrainMaterials.depth;
+    this.terrainUniforms = terrainMaterials.uniforms;
+    this.waterMaterial = createWaterMaterial();
+    this.waterUniform = this.waterMaterial.uniforms.waterTime;
     this.materials = { solid: this.material, water: this.waterMaterial };
     if (typeof Worker !== "undefined") {
       const count = Math.min(
@@ -471,9 +204,61 @@ export class World {
   setQuality(quality) {
     this.quality = quality;
     const material = quality === "low" ? this.fastMaterial : this.material;
+    this.waterMaterial.uniforms.waterDetail.value =
+      { low: 0, medium: 1, high: 2, ultra: 3, cinematic: 3 }[quality] ?? 2;
+    const anisotropy = quality === "cinematic" ? 16 : quality === "low" ? 1 : 8;
+    if (this.texture.anisotropy !== anisotropy) {
+      this.texture.anisotropy = anisotropy;
+      this.texture.needsUpdate = true;
+    }
     this.materials.solid = material;
     for (const chunk of this.chunks.values())
       if (chunk.solid) chunk.solid.material = material;
+  }
+  setRenderContext(context = {}) {
+    const u = this.waterMaterial.uniforms;
+    u.hasScene.value =
+      !!context.enabled && !!context.depthTexture && !!context.colorTexture;
+    if (!u.hasScene.value) {
+      u.sceneColor.value = null;
+      u.sceneDepth.value = null;
+    }
+    if (context.colorTexture) u.sceneColor.value = context.colorTexture;
+    if (context.depthTexture) u.sceneDepth.value = context.depthTexture;
+    if (context.resolution) u.sceneResolution.value.copy(context.resolution);
+    if (context.cameraNear) u.cameraNear.value = context.cameraNear;
+    if (context.cameraFar) u.cameraFar.value = context.cameraFar;
+  }
+  setWaterVisible(visible) {
+    for (const chunk of this.chunks.values())
+      if (chunk.water) chunk.water.visible = visible;
+  }
+  updateEnvironment() {
+    if (!this.waterMaterial) return;
+    const a = this.scene.userData.atmosphere;
+    const u = this.waterMaterial.uniforms;
+    const t = this.terrainUniforms;
+    const elapsed = a?.elapsed ?? this.time;
+    u.waterTime.value = elapsed;
+    t.terrainTime.value = elapsed;
+    if (a) {
+      if (a.sunDirection) {
+        u.sunDirection.value.copy(a.sunDirection);
+        t.terrainSunDirection.value.copy(a.sunDirection);
+      }
+      if (a.sunColor) {
+        u.sunColor.value.copy(a.sunColor);
+        t.terrainSunColor.value.copy(a.sunColor);
+      }
+      if (a.skyTop) u.skyTop.value.copy(a.skyTop);
+      if (a.skyHorizon) u.skyHorizon.value.copy(a.skyHorizon);
+      u.daylight.value = t.terrainDaylight.value = a.daylight ?? 1;
+      u.wetness.value = t.terrainWetness.value = a.wetness ?? 0;
+    }
+    if (this.scene.fog) {
+      u.fogColor.value.copy(this.scene.fog.color);
+      u.fogDensity.value = this.scene.fog.density ?? 0.007;
+    }
   }
   setLocalLights(lights = []) {
     this.localLights = Array.isArray(lights) ? lights : [];
@@ -637,9 +422,10 @@ export class World {
     this.updateFastUniforms();
     this.time = performance.now() / 1000;
     this.waterUniform.value = this.time;
+    this.updateEnvironment();
     const cx = Math.floor(position.x / S),
       cz = Math.floor(position.z / S);
-    const r = Math.max(2, Math.min(10, Math.round(renderDistance)));
+    const r = Math.max(2, Math.min(12, Math.round(renderDistance)));
     this.center = { x: cx, z: cz };
     this.renderDistance = r;
     const center = `${cx},${cz},${r}`;

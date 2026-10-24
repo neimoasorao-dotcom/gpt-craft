@@ -1,0 +1,496 @@
+{
+  "date": "2026-10-24",
+  "environment": "Chromium WebGL2 / ANGLE SwiftShader (software rendering; hardware GPU performance unverified)",
+  "scenes": [
+    {
+      "scenario": {
+        "name": "day",
+        "pos": [
+          4,
+          62,
+          25
+        ],
+        "look": [
+          18,
+          32,
+          -35
+        ],
+        "time": 0.48
+      },
+      "quality": "high",
+      "renderMs": 37,
+      "chunks": 121,
+      "triangles": 518810,
+      "calls": 245
+    },
+    {
+      "scenario": {
+        "name": "sunset",
+        "pos": [
+          4,
+          62,
+          25
+        ],
+        "look": [
+          36,
+          35,
+          -40
+        ],
+        "time": 0.73
+      },
+      "quality": "high",
+      "renderMs": 4.299999997019768,
+      "chunks": 121,
+      "triangles": 519460,
+      "calls": 256
+    },
+    {
+      "scenario": {
+        "name": "golden",
+        "pos": [
+          35,
+          36,
+          -15
+        ],
+        "look": [
+          -40,
+          34,
+          -55
+        ],
+        "time": 0.745
+      },
+      "quality": "high",
+      "renderMs": 6.399999998509884,
+      "chunks": 161,
+      "triangles": 565010,
+      "calls": 276
+    },
+    {
+      "scenario": {
+        "name": "water",
+        "pos": [
+          8,
+          34.3,
+          -5
+        ],
+        "look": [
+          20,
+          31.8,
+          -36
+        ],
+        "time": 0.43
+      },
+      "quality": "high",
+      "renderMs": 4.699999995529652,
+      "chunks": 165,
+      "triangles": 488294,
+      "calls": 255
+    },
+    {
+      "scenario": {
+        "name": "forest",
+        "pos": [
+          -30,
+          65,
+          -20
+        ],
+        "look": [
+          -45,
+          50,
+          -55
+        ],
+        "time": 0.4
+      },
+      "quality": "high",
+      "renderMs": 7.899999998509884,
+      "chunks": 196,
+      "triangles": 552050,
+      "calls": 223
+    },
+    {
+      "scenario": {
+        "name": "mountain",
+        "pos": [
+          -12,
+          65,
+          -62
+        ],
+        "look": [
+          12,
+          63,
+          -110
+        ],
+        "time": 0.42
+      },
+      "quality": "high",
+      "renderMs": 3.600000001490116,
+      "chunks": 219,
+      "triangles": 354562,
+      "calls": 161
+    },
+    {
+      "scenario": {
+        "name": "rain",
+        "pos": [
+          8,
+          34.3,
+          -5
+        ],
+        "look": [
+          20,
+          31.8,
+          -36
+        ],
+        "time": 0.43,
+        "rain": 1
+      },
+      "quality": "high",
+      "renderMs": 16.599999994039536,
+      "chunks": 219,
+      "triangles": 636224,
+      "calls": 326
+    },
+    {
+      "scenario": {
+        "name": "night",
+        "pos": [
+          4,
+          62,
+          25
+        ],
+        "look": [
+          18,
+          32,
+          -35
+        ],
+        "time": 0.93
+      },
+      "quality": "high",
+      "renderMs": 5.800000004470348,
+      "chunks": 219,
+      "triangles": 838064,
+      "calls": 404
+    },
+    {
+      "scenario": {
+        "name": "underwater",
+        "pos": [
+          17,
+          29,
+          -25
+        ],
+        "look": [
+          22,
+          29,
+          -40
+        ],
+        "time": 0.43,
+        "underwater": true
+      },
+      "quality": "high",
+      "renderMs": 3.7999999970197678,
+      "chunks": 221,
+      "triangles": 548180,
+      "calls": 280
+    },
+    {
+      "scenario": {
+        "name": "cave",
+        "pos": [
+          -0.5,
+          25.4,
+          17.5
+        ],
+        "look": [
+          -1,
+          25.2,
+          26
+        ],
+        "time": 0.43,
+        "lit": true
+      },
+      "quality": "high",
+      "renderMs": 45.600000001490116,
+      "chunks": 224,
+      "triangles": 574630,
+      "calls": 256
+    },
+    {
+      "scenario": {
+        "name": "structure",
+        "pos": [
+          7,
+          42,
+          12
+        ],
+        "look": [
+          0,
+          39,
+          0
+        ],
+        "time": 0.71,
+        "structure": true
+      },
+      "quality": "high",
+      "renderMs": 7.600000001490116,
+      "chunks": 224,
+      "triangles": 877662,
+      "calls": 414
+    }
+  ],
+  "preset_and_fallback_verification": [
+    {
+      "scenario": {
+        "name": "water",
+        "pos": [
+          8,
+          34.3,
+          -5
+        ],
+        "look": [
+          20,
+          31.8,
+          -36
+        ],
+        "time": 0.43
+      },
+      "quality": "high",
+      "renderMs": 17.100000001490116,
+      "chunks": 121,
+      "triangles": 449712,
+      "calls": 232
+    },
+    {
+      "presetSmoke": {
+        "quality": "low",
+        "width": 640,
+        "height": 400,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "frameMs": [
+          62.79999999701977,
+          60.5,
+          79.20000000298023
+        ],
+        "medianMs": 62.79999999701977,
+        "centerPixel": [
+          146,
+          180,
+          180,
+          255
+        ],
+        "post": false,
+        "targetType": 1016
+      }
+    },
+    {
+      "presetSmoke": {
+        "quality": "medium",
+        "width": 640,
+        "height": 400,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "frameMs": [
+          148.79999999701977,
+          142.5,
+          161.79999999701977
+        ],
+        "medianMs": 148.79999999701977,
+        "centerPixel": [
+          137,
+          172,
+          175,
+          255
+        ],
+        "post": false,
+        "targetType": 1016
+      }
+    },
+    {
+      "presetSmoke": {
+        "quality": "high",
+        "width": 640,
+        "height": 400,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "frameMs": [
+          260.80000000447035,
+          246.60000000149012,
+          266.8999999985099
+        ],
+        "medianMs": 260.80000000447035,
+        "centerPixel": [
+          152,
+          181,
+          183,
+          255
+        ],
+        "post": true,
+        "targetType": 1016
+      }
+    },
+    {
+      "presetSmoke": {
+        "quality": "ultra",
+        "width": 640,
+        "height": 400,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "frameMs": [
+          294.80000000447035,
+          289.8999999985099,
+          293.19999999552965
+        ],
+        "medianMs": 293.19999999552965,
+        "centerPixel": [
+          153,
+          181,
+          183,
+          255
+        ],
+        "post": true,
+        "targetType": 1016
+      }
+    },
+    {
+      "presetSmoke": {
+        "quality": "cinematic",
+        "width": 640,
+        "height": 400,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "frameMs": [
+          444.6000000014901,
+          444.29999999701977,
+          441.70000000298023
+        ],
+        "medianMs": 444.29999999701977,
+        "centerPixel": [
+          152,
+          181,
+          183,
+          255
+        ],
+        "post": true,
+        "targetType": 1016
+      }
+    },
+    {
+      "fallback": {
+        "initial": true,
+        "released": true,
+        "rebuilt": true,
+        "rgba8": true,
+        "direct": true,
+        "restored": true
+      }
+    },
+    {
+      "compositionTiming": {
+        "quality": "low",
+        "rafMs": [
+          8,
+          1347.2999999970198,
+          78.10000000149012,
+          79.60000000149012,
+          59.79999999701977
+        ],
+        "averageMs": 314.55999999940394
+      }
+    },
+    {
+      "compositionTiming": {
+        "quality": "high",
+        "rafMs": [
+          140,
+          3.5,
+          5.300000004470348,
+          262.5,
+          243
+        ],
+        "averageMs": 130.86000000089408
+      }
+    }
+  ],
+  "final_visual_polish": [
+    {
+      "scenario": {
+        "name": "golden",
+        "pos": [
+          35,
+          36,
+          -15
+        ],
+        "look": [
+          -40,
+          34,
+          -55
+        ],
+        "time": 0.745
+      },
+      "quality": "high",
+      "renderMs": 7.899999998509884,
+      "chunks": 105,
+      "triangles": 439594,
+      "calls": 224
+    },
+    {
+      "scenario": {
+        "name": "water",
+        "pos": [
+          8,
+          34.3,
+          -5
+        ],
+        "look": [
+          20,
+          31.8,
+          -36
+        ],
+        "time": 0.43
+      },
+      "quality": "high",
+      "renderMs": 5.5,
+      "chunks": 123,
+      "triangles": 445534,
+      "calls": 227
+    },
+    {
+      "scenario": {
+        "name": "night",
+        "pos": [
+          4,
+          62,
+          25
+        ],
+        "look": [
+          18,
+          32,
+          -35
+        ],
+        "time": 0.93
+      },
+      "quality": "high",
+      "renderMs": 4.299999997019768,
+      "chunks": 139,
+      "triangles": 597846,
+      "calls": 288
+    }
+  ],
+  "errors": [],
+  "regressions": {
+    "unit": {
+      "passed": 67
+    },
+    "browser": {
+      "checks": 17,
+      "passed": 17
+    },
+    "features": {
+      "checks": 8,
+      "passed": 8
+    },
+    "standalone": {
+      "checks": 8,
+      "passed": 8
+    },
+    "production_build": "passed",
+    "single_html_build": "passed",
+    "format": "passed"
+  }
+}

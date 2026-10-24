@@ -1,4 +1,5 @@
 import { ITEMS, BLOCKS } from "./data.js";
+import { GRAPHICS_PRESETS } from "./graphics-config.js";
 /** Versioned local worlds. IndexedDB is primary; localStorage is a safe fallback. */
 export const SAVE_VERSION = 1;
 const DB_NAME = "wildbound-worlds";
@@ -35,7 +36,7 @@ function cleanSettings(value = {}) {
   if (value.volume == null && value.masterVolume != null)
     value = { ...value, volume: value.masterVolume };
   const bounds = {
-    renderDistance: [2, 9],
+    renderDistance: [2, 12],
     fov: [55, 105],
     sensitivity: [0.1, 3],
     volume: [0, 1],
@@ -46,7 +47,7 @@ function cleanSettings(value = {}) {
     if (Number.isFinite(Number(value[key])))
       s[key] = Math.max(min, Math.min(max, Number(value[key])));
   s.renderDistance = Math.round(s.renderDistance);
-  if (["low", "medium", "high"].includes(value.quality || value.graphics))
+  if (Object.hasOwn(GRAPHICS_PRESETS, value.quality || value.graphics))
     s.quality = value.quality || value.graphics;
   if (typeof value.autoResolution === "boolean")
     s.autoResolution = value.autoResolution;

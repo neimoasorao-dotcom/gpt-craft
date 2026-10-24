@@ -11,6 +11,9 @@ import { Atmosphere, HandView } from "./scene.js";
 import { NavigationMap } from "./map.js";
 import { PerformanceGovernor } from "./performance.js";
 import { BeaconEffects } from "./beacons.js";
+import { SceneRenderer } from "./rendering.js";
+import { getGraphicsPreset } from "./graphics-config.js";
+import { DistantLandscape } from "./landscape.js";
 
 const DAY_LENGTH = 1200;
 const emptyProgress = () => ({
@@ -43,6 +46,8 @@ export class Game {
     this.store = new SaveStore();
     this.renderer = new THREE.WebGLRenderer({
       canvas,
+      // High+ uses FXAA (Ultra/Cinematic also use offscreen MSAA). Keeping
+      // the default framebuffer single-sampled protects the lightweight mode.
       antialias: false,
       powerPreference: "high-performance",
     });
@@ -51,6 +56,7 @@ export class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
+    this.renderer.info.autoReset = false;
     this.shadowTimer = 1;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -64,6 +70,12 @@ export class Game {
     this.scene.add(this.camera);
     this.atmosphere = new Atmosphere(this.scene, this.renderer, this.camera);
     this.hand = new HandView(this.camera);
+    this.sceneRenderer = new SceneRenderer(
+      this.renderer,
+      this.scene,
+      this.camera,
+    );
+    this.landscape = new DistantLandscape(this.scene);
     this.keys = new Set();
     this.mouseDown = false;
     this.rightDown = false;
@@ -1134,17 +1146,13 @@ export class Game {
   applySettings() {
     this.root.dataset.quality = this.settings.quality;
     this.forceRender = true;
+    const preset = getGraphicsPreset(this.renderSettings().quality);
     this.renderer.setPixelRatio(
       (this.performance?.scale || 1) *
-        (this.settings.quality === "low"
-          ? 1
-          : Math.min(
-              devicePixelRatio,
-              this.settings.quality === "high" ? 1.5 : 1.25,
-            )),
+        Math.min(devicePixelRatio, preset.maxPixelRatio),
     );
-    this.renderer.shadowMap.enabled = this.settings.quality !== "low";
-    this.world?.setQuality?.(this.settings.quality);
+    this.renderer.shadowMap.enabled = preset.shadows;
+    this.world?.setQuality?.(this.renderSettings().quality);
     this.camera.fov = this.settings.fov;
     this.camera.updateProjectionMatrix();
   }
@@ -1295,8 +1303,9 @@ export class Game {
         dt,
         (this.time % DAY_LENGTH) / DAY_LENGTH,
         this.player.position,
-        this.settings,
+        this.renderSettings(),
         underwater,
+        { world: this.world, biome },
       );
       this.audio.update(dt, {
         time: (this.time % DAY_LENGTH) / DAY_LENGTH,
@@ -1326,7 +1335,14 @@ export class Game {
         );
         this.camera.lookAt(p.x + 4, p.y - 3, p.z - 27);
         this.world.update(p, this.settings.renderDistance);
-        this.atmosphere.update(dt, 0.36, this.camera.position, this.settings);
+        this.atmosphere.update(
+          dt,
+          0.36,
+          this.camera.position,
+          this.renderSettings(),
+          false,
+          { world: this.world },
+        );
         this.world.setTime?.(0.36);
         this.entities?.update(
           dt,
@@ -1358,6 +1374,22 @@ export class Game {
       }
     }
   }
+  renderSettings() {
+    return this.settings.autoResolution &&
+      this.performance?.scale < 0.6 &&
+      getGraphicsPreset(this.settings.quality).postProcessing
+      ? { ...this.settings, quality: "medium" }
+      : this.settings;
+  }
+  renderScene(dt = 0.016) {
+    this.renderer.info.reset();
+    // Keep visual proxies out of simulation: saved terrain and collisions are unchanged.
+    const settings = this.renderSettings();
+    if (this.world && this.world.quality !== settings.quality)
+      this.world.setQuality(settings.quality);
+    this.landscape.update(this.world, this.camera, settings, dt);
+    this.sceneRenderer.render(this.world, this.hand.group, settings);
+  }
   frame(now) {
     if (!this.running) return;
     requestAnimationFrame((t) => this.frame(t));
@@ -1380,7 +1412,7 @@ export class Game {
         this.forceRender ||
         this.lastRenderedState !== this.state
       ) {
-        this.renderer.render(this.scene, this.camera);
+        this.renderScene(elapsed);
         this.lastRenderedState = this.state;
         this.forceRender = false;
       }
